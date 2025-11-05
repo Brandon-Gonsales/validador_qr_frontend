@@ -40,12 +40,12 @@
 		}
 	} // --- VARIABLES REACTIVAS ---
 
-	let scanning = false;
-	let result: TicketResponse | null = null;
-	let loading = false;
-	let cameraPermissionDenied = false;
-	let lastScannedCode = ''; // Evitar escaneos duplicados
-	let ticketData: TicketResponse | null = null;
+	let scanning: boolean = $state(false);
+	let result: TicketResponse | null = $state(null);
+	let loading: boolean = $state(false);
+	let cameraPermissionDenied: boolean = $state(false);
+	let lastScannedCode: string = $state(''); // Evitar escaneos duplicados
+	let ticketData: TicketResponse | null = $state(null);
 	// Variable para la instancia de la librería
 
 	let html5QrCode: Html5Qrcode; // ID del <div> donde se renderizará el video
@@ -487,6 +487,7 @@
 			<!-- Instrucciones -->
 			<div class="rounded-xl border border-yellow-400/20 bg-gray-900/30 p-4">
 				{#if ticketData}
+					<h3>ticketData response</h3>
 					<pre>{JSON.stringify(ticketData, null, 2)}</pre>
 				{/if}
 				<h3 class="mb-3 flex items-center gap-2 font-bold text-[#F5FC3C]">
