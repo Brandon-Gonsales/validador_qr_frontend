@@ -307,12 +307,14 @@
 
 				<!-- Cámara activa escaneando -->
 				{#if scanning}
-					<div class="relative">
+					<div class="relative overflow-hidden rounded-xl">
 						<video
 							bind:this={videoElement}
 							autoplay
 							playsinline
-							class="w-full rounded-xl bg-black shadow-2xl"
+							muted
+							class="h-auto w-full rounded-xl bg-black shadow-2xl"
+							style="display: block; max-height: 70vh;"
 						></video>
 						<canvas bind:this={canvasElement} class="hidden"></canvas>
 
