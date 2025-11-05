@@ -27,7 +27,8 @@
 				},
 				body: JSON.stringify({ f1_code: qrData })
 			});
-			alert(response.json());
+			window.alert(response.json());
+			ticketData = await response.json();
 			const data: TicketResponse = await response.json();
 			return data;
 		} catch (err) {
@@ -44,6 +45,7 @@
 	let loading = false;
 	let cameraPermissionDenied = false;
 	let lastScannedCode = ''; // Evitar escaneos duplicados
+	let ticketData: TicketResponse | null = null;
 	// Variable para la instancia de la librería
 
 	let html5QrCode: Html5Qrcode; // ID del <div> donde se renderizará el video
@@ -484,6 +486,9 @@
 
 			<!-- Instrucciones -->
 			<div class="rounded-xl border border-yellow-400/20 bg-gray-900/30 p-4">
+				{#if ticketData}
+					<pre>{JSON.stringify(ticketData, null, 2)}</pre>
+				{/if}
 				<h3 class="mb-3 flex items-center gap-2 font-bold text-[#F5FC3C]">
 					<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path
