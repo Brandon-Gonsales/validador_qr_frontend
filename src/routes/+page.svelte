@@ -118,6 +118,36 @@
 	}
 
 	// Iniciar cámara
+	// async function startCamera() {
+	// 	try {
+	// 		stream = await navigator.mediaDevices.getUserMedia({
+	// 			video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+	// 		});
+
+	// 		if (videoElement) {
+	// 			videoElement.srcObject = stream;
+	// 			scanning = true;
+	// 			result = null;
+	// 			lastScannedCode = '';
+	// 			cameraPermissionGranted = true;
+	// 			cameraPermissionDenied = false;
+
+	// 			// Esperar a que el video esté listo antes de escanear
+	// 			videoElement.onloadedmetadata = () => {
+	// 				startScanning();
+	// 			};
+	// 		}
+	// 	} catch (err) {
+	// 		console.error('Error al acceder a la cámara:', err);
+	// 		cameraPermissionDenied = true;
+	// 		alert(
+	// 			'No se pudo acceder a la cámara. Por favor, permite el acceso en la configuración del navegador.'
+	// 		);
+	// 	}
+	// }
+
+	// ... dentro de tu <script>
+
 	async function startCamera() {
 		try {
 			stream = await navigator.mediaDevices.getUserMedia({
@@ -130,10 +160,13 @@
 				result = null;
 				lastScannedCode = '';
 				cameraPermissionGranted = true;
-				cameraPermissionDenied = false;
+				cameraPermissionDenied = false; // Esperar a que el video esté listo antes de escanear
 
-				// Esperar a que el video esté listo antes de escanear
 				videoElement.onloadedmetadata = () => {
+					// VVV ¡ESTA ES LA LÍNEA QUE FALTA! VVV
+					videoElement.play();
+					// ^^^ ¡AÑADE ESTA LÍNEA! ^^^
+
 					startScanning();
 				};
 			}
@@ -145,6 +178,8 @@
 			);
 		}
 	}
+
+	// ... el resto de tu código
 
 	// Detener cámara
 	function stopCamera() {
