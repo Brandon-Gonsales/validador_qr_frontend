@@ -17,16 +17,7 @@
 	const ENDPOINT_URL = 'https://validador-qr-bvw0.onrender.com/validate-ticket'; // --- FUNCIÓN DE API (Sin cambios, está perfecta) ---
 
 	async function validateTicket(qrData: string): Promise<TicketResponse> {
-		const codeAsNumber = parseInt(qrData, 10);
-
-		if (isNaN(codeAsNumber)) {
-			console.error('Error: El dato del QR no es un número:', qrData);
-			return {
-				status: 'error',
-				error_code: 'NOT_FOUND',
-				message: 'Código QR no válido (no es un número).'
-			};
-		}
+		console.log('Validando entrada con código:', qrData);
 
 		try {
 			const response = await fetch(ENDPOINT_URL, {
@@ -34,7 +25,7 @@
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({ f1_code: codeAsNumber })
+				body: JSON.stringify({ f1_code: qrData })
 			});
 			const data: TicketResponse = await response.json();
 			return data;
@@ -346,7 +337,8 @@
 									                  Buscando código QR...
 								</p>
 							</div>
-						</div><button
+						</div>
+						<button
 							on:click={stopScanner}
 							class="absolute bottom-4 left-1/2 -translate-x-1/2 transform rounded-xl bg-red-500 px-8 py-3 font-bold text-white shadow-lg transition-all hover:bg-red-600 active:scale-95"
 						>
