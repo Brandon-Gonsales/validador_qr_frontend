@@ -27,7 +27,8 @@
 				},
 				body: JSON.stringify({ f1_code: qrData })
 			});
-			window.alert(response.json());
+			//window.alert(response.json());
+			console.log('response.json(): ', response.json());
 			//ticketData = await response.json();
 			const data: TicketResponse = await response.json();
 			return data;
@@ -53,7 +54,7 @@
 	let html5QrCode: Html5Qrcode; // ID del <div> donde se renderizará el video
 	const qrReaderElementId = 'qr-reader'; // --- LÓGICA DEL ESCÁNER (Actualizada) ---
 
-	async function startScanner() {
+	async function startScanner(qrPrueba: string) {
 		scanning = true;
 		result = null;
 		lastScannedCode = ''; // Esperar un tick para que el <div id="qr-reader"> exista en el DOM
@@ -70,12 +71,12 @@
 			qrbox: { width: 224, height: 224 }
 		}; // Callback: Se llama CADA VEZ que detecta un QR
 
-		const qrCodeSuccessCallback = (decodedText: string) => {
+		const qrCodeSuccessCallback = (qrPrueba: string) => {
 			// Solo procesar si es un código nuevo (para evitar doble submit)
-			if (decodedText !== lastScannedCode) {
-				lastScannedCode = decodedText;
-				console.log('✅ QR detectado:', decodedText);
-				handleQRDetected(decodedText);
+			if (qrPrueba !== lastScannedCode) {
+				lastScannedCode = qrPrueba;
+				console.log('✅ QR detectado:', qrPrueba);
+				handleQRDetected(qrPrueba);
 			}
 		}; // Callback para errores (los ignoramos para que siga escaneando)
 
@@ -262,12 +263,12 @@
 								</p>
 							</div>
 						{/if}
-						<button
+						<!-- <button
 							on:click={startScanner}
 							class="transform rounded-xl bg-[#F5FC3C] px-8 py-4 font-bold text-black shadow-lg transition-all hover:scale-105 hover:bg-yellow-300 active:scale-95"
 						>
 							<span class="flex items-center justify-center gap-2">
-								<!-- Icono SVG en línea -->
+							
 								<svg
 									class="h-5 w-5"
 									xmlns="http://www.w3.org/2000/svg"
@@ -289,7 +290,7 @@
 								>
 								                Iniciar Escaneo QR
 							</span>
-						</button>
+						</button> -->
 						<p class="mt-4 text-sm text-gray-400">Apunta la cámara al código QR de la entrada</p>
 					</div>
 				{/if}
@@ -344,7 +345,7 @@
 							</div>
 						</div>
 						<button
-							on:click={stopScanner}
+							onclick={stopScanner}
 							class="absolute bottom-4 left-1/2 -translate-x-1/2 transform rounded-xl bg-red-500 px-8 py-3 font-bold text-white shadow-lg transition-all hover:bg-red-600 active:scale-95"
 						>
 							Cancelar
@@ -477,51 +478,21 @@
 							</div>
 						{/if}
 						<button
-							on:click={resetResult}
+							onclick={resetResult}
 							class="mt-6 transform rounded-xl bg-[#F5FC3C] px-8 py-3 font-bold text-black shadow-lg transition-all hover:scale-105 hover:bg-yellow-300 active:scale-95"
 						>
-							Escanear Otra Entrada           _
+							Escanear Otra Entrada
 						</button>
 					</div>
 				{/if}
 			</div>
-
-			<!-- Instrucciones -->
 			<div class="rounded-xl border border-yellow-400/20 bg-gray-900/30 p-4">
 				{#if ticketData}
 					<h3>ticketData response</h3>
 					<pre>{JSON.stringify(ticketData, null, 2)}</pre>
 				{/if}
-				<h3 class="mb-3 flex items-center gap-2 font-bold text-[#F5FC3C]">
-					<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-						/>
-					</svg>
-					          Instrucciones
-				</h3>
-				<ul class="space-y-2 text-sm text-gray-400">
-					<li class="flex items-start gap-2">
-						<span class="mt-0.5 text-[#F5FC3C]">•</span>
-						<span>Presiona "Iniciar Escaneo QR" para activar la cámara</span>
-					</li>
-					<li class="flex items-start gap-2">
-						<span class="mt-0.5 text-[#F5FC3C]">•</span>
-						<span>Apunta la cámara al código QR de la entrada</span>
-					</li>
-					<li class="flex items-start gap-2">
-						click-outside:             <span class="mt-0.5 text-[#F5FC3C]">•</span>
-						<span>El escaneo es automático, no necesitas tomar foto</span>
-					</li>
-					<li class="flex items-start gap-2">
-						<span class="mt-0.5 text-[#F5FC3C]">•</span>
-						<span>La cámara se apagará automáticamente después de validar</span>
-					</li>
-				</ul>
 			</div>
+			<button onclick={() => startScanner('671939')}>Iniciar escaneo</button>
 		</div>
 	</div>
 </div>
