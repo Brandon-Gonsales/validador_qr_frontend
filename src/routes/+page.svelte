@@ -118,68 +118,66 @@
 	}
 
 	// Iniciar cámara
-	// async function startCamera() {
-	// 	try {
-	// 		stream = await navigator.mediaDevices.getUserMedia({
-	// 			video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
-	// 		});
-
-	// 		if (videoElement) {
-	// 			videoElement.srcObject = stream;
-	// 			scanning = true;
-	// 			result = null;
-	// 			lastScannedCode = '';
-	// 			cameraPermissionGranted = true;
-	// 			cameraPermissionDenied = false;
-
-	// 			// Esperar a que el video esté listo antes de escanear
-	// 			videoElement.onloadedmetadata = () => {
-	// 				startScanning();
-	// 			};
-	// 		}
-	// 	} catch (err) {
-	// 		console.error('Error al acceder a la cámara:', err);
-	// 		cameraPermissionDenied = true;
-	// 		alert(
-	// 			'No se pudo acceder a la cámara. Por favor, permite el acceso en la configuración del navegador.'
-	// 		);
-	// 	}
-	// }
-
-	// ... dentro de tu <script>
-
 	async function startCamera() {
+		scanning = true;
+		result = null;
+		lastScannedCode = '';
+
 		try {
 			stream = await navigator.mediaDevices.getUserMedia({
-				video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+				video: {
+					facingMode: 'environment',
+					width: { ideal: 1280 },
+					height: { ideal: 720 }
+				},
+				audio: false
 			});
+
+			// Esperar un tick para que el elemento video exista en el DOM
+			await new Promise((resolve) => setTimeout(resolve, 100));
 
 			if (videoElement) {
 				videoElement.srcObject = stream;
-				scanning = true;
-				result = null;
-				lastScannedCode = '';
+				videoElement.setAttribute('playsinline', 'true');
+				videoElement.setAttribute('autoplay', 'true');
+				videoElement.setAttribute('muted', 'true');
+
+				try {
+					await videoElement.play();
+					console.log('✅ Video reproduciendo');
+				} catch (playError) {
+					console.error('Error al reproducir video:', playError);
+				}
+
 				cameraPermissionGranted = true;
-				cameraPermissionDenied = false; // Esperar a que el video esté listo antes de escanear
+				cameraPermissionDenied = false;
 
+				// Esperar a que el video esté completamente listo
 				videoElement.onloadedmetadata = () => {
-					// VVV ¡ESTA ES LA LÍNEA QUE FALTA! VVV
-					videoElement.play();
-					// ^^^ ¡AÑADE ESTA LÍNEA! ^^^
+					console.log(
+						'✅ Video metadata cargado. Dimensiones:',
+						videoElement.videoWidth,
+						'x',
+						videoElement.videoHeight
+					);
+				};
 
+				videoElement.oncanplay = () => {
+					console.log('✅ Video puede reproducirse, iniciando escaneo...');
 					startScanning();
 				};
+			} else {
+				console.error('❌ Elemento video no encontrado');
 			}
 		} catch (err) {
-			console.error('Error al acceder a la cámara:', err);
+			console.error('❌ Error al acceder a la cámara:', err);
 			cameraPermissionDenied = true;
+			scanning = false;
 			alert(
 				'No se pudo acceder a la cámara. Por favor, permite el acceso en la configuración del navegador.'
 			);
 		}
 	}
-
-	// ... el resto de tu código
 
 	// Detener cámara
 	function stopCamera() {
@@ -481,6 +479,39 @@
 						</button>
 					</div>
 				{/if}
+			</div>
+
+			<!-- Instrucciones -->
+			<div class="rounded-xl border border-yellow-400/20 bg-gray-900/30 p-4">
+				<h3 class="mb-3 flex items-center gap-2 font-bold text-[#F5FC3C]">
+					<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							stroke-width="2"
+							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+						/>
+					</svg>
+					Instrucciones
+				</h3>
+				<ul class="space-y-2 text-sm text-gray-400">
+					<li class="flex items-start gap-2">
+						<span class="mt-0.5 text-[#F5FC3C]">•</span>
+						<span>Presiona "Iniciar Escaneo QR" para activar la cámara</span>
+					</li>
+					<li class="flex items-start gap-2">
+						<span class="mt-0.5 text-[#F5FC3C]">•</span>
+						<span>Apunta la cámara al código QR de la entrada</span>
+					</li>
+					<li class="flex items-start gap-2">
+						<span class="mt-0.5 text-[#F5FC3C]">•</span>
+						<span>El escaneo es automático, no necesitas tomar foto</span>
+					</li>
+					<li class="flex items-start gap-2">
+						<span class="mt-0.5 text-[#F5FC3C]">•</span>
+						<span>La cámara se apagará automáticamente después de validar</span>
+					</li>
+				</ul>
 			</div>
 		</div>
 	</div>
