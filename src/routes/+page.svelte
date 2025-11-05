@@ -121,11 +121,18 @@
 	async function startCamera() {
 		try {
 			stream = await navigator.mediaDevices.getUserMedia({
-				video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
+				video: {
+					facingMode: 'environment',
+					width: { ideal: 1280 },
+					height: { ideal: 720 }
+				}
 			});
 
 			if (videoElement) {
 				videoElement.srcObject = stream;
+				videoElement.setAttribute('playsinline', 'true'); // iOS fix
+				await videoElement.play(); // Asegurar que se reproduzca
+
 				scanning = true;
 				result = null;
 				lastScannedCode = '';
@@ -134,12 +141,19 @@
 
 				// Esperar a que el video esté listo antes de escanear
 				videoElement.onloadedmetadata = () => {
+					console.log(
+						'Video listo, dimensiones:',
+						videoElement.videoWidth,
+						'x',
+						videoElement.videoHeight
+					);
 					startScanning();
 				};
 			}
 		} catch (err) {
 			console.error('Error al acceder a la cámara:', err);
 			cameraPermissionDenied = true;
+			scanning = false;
 			alert(
 				'No se pudo acceder a la cámara. Por favor, permite el acceso en la configuración del navegador.'
 			);
@@ -483,6 +497,7 @@
 		</div>
 	</div>
 </div>
+
 <!-- <script lang="ts">
 	import CameraIcon from '$lib/icons/outline/cameraIcon.svelte';
 	import CheckCircleIcon from '$lib/icons/outline/checkCircleIcon.svelte';
