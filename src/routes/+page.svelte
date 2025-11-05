@@ -299,8 +299,8 @@
 						{#if cameraPermissionDenied}
 							<div class="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
 								<p class="text-sm text-red-400">
-									⚠️ No tienes permisos para usar la cámara. Por favor, actívalos en la
-									configuración del navegador.
+									No tienes permisos para usar la cámara. Por favor, actívalos en la configuración
+									del navegador.
 								</p>
 							</div>
 						{/if}
