@@ -121,18 +121,11 @@
 	async function startCamera() {
 		try {
 			stream = await navigator.mediaDevices.getUserMedia({
-				video: {
-					facingMode: 'environment',
-					width: { ideal: 1280 },
-					height: { ideal: 720 }
-				}
+				video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }
 			});
 
 			if (videoElement) {
 				videoElement.srcObject = stream;
-				videoElement.setAttribute('playsinline', 'true'); // iOS fix
-				await videoElement.play(); // Asegurar que se reproduzca
-
 				scanning = true;
 				result = null;
 				lastScannedCode = '';
@@ -141,19 +134,12 @@
 
 				// Esperar a que el video esté listo antes de escanear
 				videoElement.onloadedmetadata = () => {
-					console.log(
-						'Video listo, dimensiones:',
-						videoElement.videoWidth,
-						'x',
-						videoElement.videoHeight
-					);
 					startScanning();
 				};
 			}
 		} catch (err) {
 			console.error('Error al acceder a la cámara:', err);
 			cameraPermissionDenied = true;
-			scanning = false;
 			alert(
 				'No se pudo acceder a la cámara. Por favor, permite el acceso en la configuración del navegador.'
 			);
@@ -299,8 +285,8 @@
 						{#if cameraPermissionDenied}
 							<div class="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
 								<p class="text-sm text-red-400">
-									No tienes permisos para usar la cámara. Por favor, actívalos en la configuración
-									del navegador.
+									⚠️ No tienes permisos para usar la cámara. Por favor, actívalos en la
+									configuración del navegador.
 								</p>
 							</div>
 						{/if}
@@ -460,39 +446,6 @@
 						</button>
 					</div>
 				{/if}
-			</div>
-
-			<!-- Instrucciones -->
-			<div class="rounded-xl border border-yellow-400/20 bg-gray-900/30 p-4">
-				<h3 class="mb-3 flex items-center gap-2 font-bold text-[#F5FC3C]">
-					<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-						/>
-					</svg>
-					Instrucciones
-				</h3>
-				<ul class="space-y-2 text-sm text-gray-400">
-					<li class="flex items-start gap-2">
-						<span class="mt-0.5 text-[#F5FC3C]">•</span>
-						<span>Presiona "Iniciar Escaneo QR" para activar la cámara</span>
-					</li>
-					<li class="flex items-start gap-2">
-						<span class="mt-0.5 text-[#F5FC3C]">•</span>
-						<span>Apunta la cámara al código QR de la entrada</span>
-					</li>
-					<li class="flex items-start gap-2">
-						<span class="mt-0.5 text-[#F5FC3C]">•</span>
-						<span>El escaneo es automático, no necesitas tomar foto</span>
-					</li>
-					<li class="flex items-start gap-2">
-						<span class="mt-0.5 text-[#F5FC3C]">•</span>
-						<span>La cámara se apagará automáticamente después de validar</span>
-					</li>
-				</ul>
 			</div>
 		</div>
 	</div>
