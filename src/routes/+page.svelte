@@ -181,6 +181,8 @@
 
 	// Detener cámara
 	function stopCamera() {
+		scanning = false; // Primero detener el flag de escaneo
+
 		if (stream) {
 			stream.getTracks().forEach((track) => track.stop());
 			stream = null;
@@ -189,7 +191,9 @@
 			clearInterval(scanInterval);
 			scanInterval = null;
 		}
-		scanning = false;
+		if (videoElement) {
+			videoElement.srcObject = null;
+		}
 		lastScannedCode = '';
 	}
 
@@ -197,30 +201,54 @@
 	function startScanning() {
 		if (scanInterval) clearInterval(scanInterval);
 
-		scanInterval = setInterval(() => {
+		const scan = () => {
 			if (
 				canvasElement &&
 				videoElement &&
 				videoElement.readyState === videoElement.HAVE_ENOUGH_DATA
 			) {
 				const context = canvasElement.getContext('2d');
-				if (!context) return;
+				if (!context) {
+					requestAnimationFrame(scan);
+					return;
+				}
 
-				canvasElement.width = videoElement.videoWidth;
-				canvasElement.height = videoElement.videoHeight;
+				// Asegurar que las dimensiones sean correctas
+				if (
+					canvasElement.width !== videoElement.videoWidth ||
+					canvasElement.height !== videoElement.videoHeight
+				) {
+					canvasElement.width = videoElement.videoWidth;
+					canvasElement.height = videoElement.videoHeight;
+				}
+
+				// Dibujar el frame actual del video en el canvas
 				context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
 
+				// Obtener los datos de la imagen
 				const imageData = context.getImageData(0, 0, canvasElement.width, canvasElement.height);
+
+				// Intentar detectar código QR con diferentes opciones
 				const code = jsQR(imageData.data, imageData.width, imageData.height, {
-					inversionAttempts: 'dontInvert'
+					inversionAttempts: 'attemptBoth' // Probar con imagen normal e invertida
 				});
 
-				if (code && code.data && code.data !== lastScannedCode) {
+				if (code && code.data && code.data.trim() !== '' && code.data !== lastScannedCode) {
+					console.log('✅ QR detectado:', code.data);
 					lastScannedCode = code.data;
 					handleQRDetected(code.data);
+					return; // Detener el escaneo
 				}
 			}
-		}, 100);
+
+			// Continuar escaneando
+			if (scanning) {
+				requestAnimationFrame(scan);
+			}
+		};
+
+		// Iniciar el loop de escaneo
+		requestAnimationFrame(scan);
 	}
 
 	// Manejar QR detectado
@@ -340,16 +368,15 @@
 
 				<!-- Cámara activa escaneando -->
 				{#if scanning}
-					<div class="relative overflow-hidden rounded-xl">
+					<div class="relative overflow-hidden rounded-xl bg-black">
 						<video
 							bind:this={videoElement}
 							autoplay
 							playsinline
 							muted
-							class="h-auto w-full rounded-xl bg-black shadow-2xl"
-							style="display: block; max-height: 70vh;"
+							class="max-h-[600px] min-h-[300px] w-full object-cover"
 						></video>
-						<canvas bind:this={canvasElement} class="hidden"></canvas>
+						<canvas bind:this={canvasElement} style="display: none;"></canvas>
 
 						<!-- Overlay de escaneo -->
 						<div class="pointer-events-none absolute inset-0 rounded-xl">
@@ -381,10 +408,12 @@
 
 						<!-- Indicador de escaneo -->
 						<div class="absolute top-4 left-1/2 -translate-x-1/2 transform">
-							<div class="rounded-full bg-black/70 px-4 py-2 backdrop-blur-sm">
+							<div
+								class="rounded-full border border-[#F5FC3C]/30 bg-black/80 px-4 py-2 backdrop-blur-sm"
+							>
 								<p class="flex items-center gap-2 text-sm font-medium text-[#F5FC3C]">
 									<span class="inline-block h-2 w-2 animate-pulse rounded-full bg-[#F5FC3C]"></span>
-									Escaneando...
+									Buscando código QR...
 								</p>
 							</div>
 						</div>
