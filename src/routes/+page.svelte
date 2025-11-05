@@ -1,11 +1,7 @@
 <script lang="ts">
-	import CameraIcon from '$lib/icons/outline/cameraIcon.svelte';
-	import CheckCircleIcon from '$lib/icons/outline/checkCircleIcon.svelte';
-	import Loader2Icon from '$lib/icons/outline/loader2Icon.svelte';
-	import ScanIcon from '$lib/icons/outline/scanIcon.svelte';
-	import AlertCircleIcon from '$lib/icons/solid/alertCircleIcon.svelte';
-	import { onMount, onDestroy } from 'svelte';
-	import jsQR from 'jsqr';
+	// --- LIBRERÍAS ---
+	import { onMount, onDestroy } from 'svelte'; // Importamos la nueva librería. Debes instalarla: npm install html5-qrcode
+	import { Html5Qrcode } from 'html5-qrcode'; // --- TIPOS DE DATOS (Sin cambios) ---
 
 	type TicketResponse = {
 		status: 'success' | 'error';
@@ -16,211 +12,121 @@
 			user_id?: string;
 			scanned_at?: string;
 		};
-	}; // URL del endpoint (reemplaza con tu URL real)
+	}; // --- ENDPOINT (Sin cambios) ---
 
-	// --- CAMBIO 1: URL DEL ENDPOINT ACTUALIZADA ---
-	const ENDPOINT_URL = 'https://validador-qr-bvw0.onrender.com/validate-ticket'; // --- CAMBIO 2: FUNCIÓN 'validateTicket' IMPLEMENTADA ---
-	// Función para validar entrada con el endpoint real
+	const ENDPOINT_URL = 'https://validador-qr-bvw0.onrender.com/validate-ticket'; // --- FUNCIÓN DE API (Sin cambios, está perfecta) ---
 
 	async function validateTicket(qrData: string): Promise<TicketResponse> {
+		const codeAsNumber = parseInt(qrData, 10);
+
+		if (isNaN(codeAsNumber)) {
+			console.error('Error: El dato del QR no es un número:', qrData);
+			return {
+				status: 'error',
+				error_code: 'NOT_FOUND',
+				message: 'Código QR no válido (no es un número).'
+			};
+		}
+
 		try {
-			// Llamamos al endpoint real con el método POST
 			const response = await fetch(ENDPOINT_URL, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({ f1_code: qrData }) // Enviamos el JSON como espera tu API
-			}); // Tu API devuelve JSON tanto para éxito (200) como para errores (404, 409)
-			// así que solo necesitamos parsear la respuesta.
-
+				body: JSON.stringify({ f1_code: codeAsNumber })
+			});
 			const data: TicketResponse = await response.json();
 			return data;
 		} catch (err) {
-			// Esto captura errores de red (ej. sin internet, CORS, o si el servidor está caído)
 			console.error('Error de red o fetch:', err);
 			return {
 				status: 'error',
 				message: 'Error de conexión. No se pudo validar.'
 			};
 		}
-	}
+	} // --- VARIABLES REACTIVAS ---
 
-	// Variables reactivas
 	let scanning = false;
 	let result: TicketResponse | null = null;
 	let loading = false;
-	let videoElement: HTMLVideoElement;
-	let canvasElement: HTMLCanvasElement;
-	let stream: MediaStream | null = null;
-	let scanInterval: ReturnType<typeof setInterval> | null = null;
-	let cameraPermissionGranted = false;
 	let cameraPermissionDenied = false;
 	let lastScannedCode = ''; // Evitar escaneos duplicados
+	// Variable para la instancia de la librería
 
-	// Verificar si hay permiso de cámara
-	async function checkCameraPermission() {
-		try {
-			const permissionStatus = await navigator.permissions.query({
-				name: 'camera' as PermissionName
-			});
+	let html5QrCode: Html5Qrcode; // ID del <div> donde se renderizará el video
+	const qrReaderElementId = 'qr-reader'; // --- LÓGICA DEL ESCÁNER (Actualizada) ---
 
-			if (permissionStatus.state === 'granted') {
-				cameraPermissionGranted = true;
-				cameraPermissionDenied = false;
-			} else if (permissionStatus.state === 'denied') {
-				cameraPermissionGranted = false;
-				cameraPermissionDenied = true;
-			}
-
-			permissionStatus.onchange = () => {
-				cameraPermissionGranted = permissionStatus.state === 'granted';
-				cameraPermissionDenied = permissionStatus.state === 'denied';
-			};
-		} catch (err) {
-			console.warn('⚠️ API de permisos no soportada');
-		}
-	}
-
-	// Iniciar cámara
-	async function startCamera() {
+	async function startScanner() {
 		scanning = true;
 		result = null;
-		lastScannedCode = '';
+		lastScannedCode = ''; // Esperar un tick para que el <div id="qr-reader"> exista en el DOM
 
-		try {
-			stream = await navigator.mediaDevices.getUserMedia({
-				video: {
-					facingMode: 'environment',
-					width: { ideal: 1280 },
-					height: { ideal: 720 }
-				},
-				audio: false
-			});
+		await new Promise((resolve) => setTimeout(resolve, 100)); // Inicializar la librería en el <div>
 
-			// Esperar un tick para que el elemento video exista en el DOM
-			await new Promise((resolve) => setTimeout(resolve, 100));
+		if (!html5QrCode) {
+			html5QrCode = new Html5Qrcode(qrReaderElementId);
+		} // Configuración: 10 FPS, y un 'qrbox' de 224x224px
+		// El 'qrbox' es el área visual donde la librería se enfocará en buscar
 
-			if (videoElement) {
-				videoElement.srcObject = stream;
-				videoElement.setAttribute('playsinline', 'true');
-				videoElement.setAttribute('autoplay', 'true');
-				videoElement.setAttribute('muted', 'true');
+		const config = {
+			fps: 10,
+			qrbox: { width: 224, height: 224 }
+		}; // Callback: Se llama CADA VEZ que detecta un QR
 
-				try {
-					await videoElement.play();
-					console.log('✅ Video reproduciendo');
-				} catch (playError) {
-					console.error('Error al reproducir video:', playError);
-				}
-
-				cameraPermissionGranted = true;
-				cameraPermissionDenied = false;
-
-				// Esperar a que el video esté completamente listo
-				videoElement.onloadedmetadata = () => {
-					console.log(
-						'✅ Video metadata cargado. Dimensiones:',
-						videoElement.videoWidth,
-						'x',
-						videoElement.videoHeight
-					);
-				};
-
-				videoElement.oncanplay = () => {
-					console.log('✅ Video puede reproducirse, iniciando escaneo...');
-					startScanning();
-				};
-			} else {
-				console.error('❌ Elemento video no encontrado');
+		const qrCodeSuccessCallback = (decodedText: string) => {
+			// Solo procesar si es un código nuevo (para evitar doble submit)
+			if (decodedText !== lastScannedCode) {
+				lastScannedCode = decodedText;
+				console.log('✅ QR detectado:', decodedText);
+				handleQRDetected(decodedText);
 			}
-		} catch (err) {
-			console.error('❌ Error al acceder a la cámara:', err);
-			cameraPermissionDenied = true;
-			scanning = false;
-			alert(
-				'No se pudo acceder a la cámara. Por favor, permite el acceso en la configuración del navegador.'
-			);
-		}
-	}
+		}; // Callback para errores (los ignoramos para que siga escaneando)
 
-	// Detener cámara
-	function stopCamera() {
-		scanning = false; // Primero detener el flag de escaneo
-
-		if (stream) {
-			stream.getTracks().forEach((track) => track.stop());
-			stream = null;
-		}
-		if (scanInterval) {
-			clearInterval(scanInterval);
-			scanInterval = null;
-		}
-		if (videoElement) {
-			videoElement.srcObject = null;
-		}
-		lastScannedCode = '';
-	}
-
-	// Escanear QR con jsQR
-	function startScanning() {
-		if (scanInterval) clearInterval(scanInterval);
-
-		const scan = () => {
-			if (
-				canvasElement &&
-				videoElement &&
-				videoElement.readyState === videoElement.HAVE_ENOUGH_DATA
-			) {
-				const context = canvasElement.getContext('2d');
-				if (!context) {
-					requestAnimationFrame(scan);
-					return;
-				}
-
-				// Asegurar que las dimensiones sean correctas
-				if (
-					canvasElement.width !== videoElement.videoWidth ||
-					canvasElement.height !== videoElement.videoHeight
-				) {
-					canvasElement.width = videoElement.videoWidth;
-					canvasElement.height = videoElement.videoHeight;
-				}
-
-				// Dibujar el frame actual del video en el canvas
-				context.drawImage(videoElement, 0, 0, canvasElement.width, canvasElement.height);
-
-				// Obtener los datos de la imagen
-				const imageData = context.getImageData(0, 0, canvasElement.width, canvasElement.height);
-
-				// Intentar detectar código QR con diferentes opciones
-				const code = jsQR(imageData.data, imageData.width, imageData.height, {
-					inversionAttempts: 'attemptBoth' // Probar con imagen normal e invertida
-				});
-
-				if (code && code.data && code.data.trim() !== '' && code.data !== lastScannedCode) {
-					console.log('✅ QR detectado:', code.data);
-					lastScannedCode = code.data;
-					handleQRDetected(code.data);
-					return; // Detener el escaneo
-				}
-			}
-
-			// Continuar escaneando
-			if (scanning) {
-				requestAnimationFrame(scan);
-			}
+		const qrCodeErrorCallback = (errorMessage: string) => {
+			// console.warn(`Error de escaneo: ${errorMessage}`);
 		};
 
-		// Iniciar el loop de escaneo
-		requestAnimationFrame(scan);
+		try {
+			// ¡Iniciar la cámara!
+			await html5QrCode.start(
+				{ facingMode: 'environment' }, // Pedir cámara trasera
+				config,
+				qrCodeSuccessCallback,
+				qrCodeErrorCallback
+			);
+			console.log('✅ Escáner iniciado');
+			cameraPermissionDenied = false;
+		} catch (err: any) {
+			// Manejar error de permisos
+			console.error('❌ Error al iniciar el escáner:', err);
+			if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+				cameraPermissionDenied = true;
+			}
+			scanning = false;
+			alert('No se pudo acceder a la cámara. Revisa los permisos.');
+		}
 	}
 
-	// Manejar QR detectado
+	async function stopScanner() {
+		scanning = false;
+		try {
+			// Detener la cámara solo si está iniciada
+			if (html5QrCode && html5QrCode.isScanning) {
+				await html5QrCode.stop();
+				console.log('✅ Escáner detenido');
+			}
+		} catch (err) {
+			console.error('❌ Error al detener el escáner:', err);
+		}
+		lastScannedCode = '';
+	}
+
 	async function handleQRDetected(qrData: string) {
-		stopCamera();
+		// Detener la cámara INMEDIATAMENTE
+		await stopScanner(); // Mostrar 'Cargando...'
 		loading = true;
-		result = null;
+		result = null; // Llamar a la API
 
 		try {
 			const response = await validateTicket(qrData);
@@ -234,15 +140,13 @@
 		} finally {
 			loading = false;
 		}
-	}
+	} // --- FUNCIONES AUXILIARES (Sin cambios) ---
 
-	// Reset resultado
 	function resetResult() {
 		result = null;
 		lastScannedCode = '';
 	}
 
-	// Formatear fecha
 	function formatDate(dateString?: string): string {
 		if (!dateString) return '';
 		const date = new Date(dateString);
@@ -253,17 +157,32 @@
 			hour: '2-digit',
 			minute: '2-digit'
 		});
-	}
+	} // --- CICLO DE VIDA ---
 
 	onMount(() => {
-		checkCameraPermission();
+		// No inicializamos la cámara aquí, solo al presionar el botón
+		// Pero verificamos permisos si es posible (opcional)
+		if (navigator.permissions) {
+			navigator.permissions.query({ name: 'camera' as PermissionName }).then((status) => {
+				cameraPermissionDenied = status.state === 'denied';
+				status.onchange = () => {
+					cameraPermissionDenied = status.state === 'denied';
+				};
+			});
+		}
 	});
 
 	onDestroy(() => {
-		stopCamera();
+		// Asegurarse de detener la cámara si el componente se destruye
+		stopScanner();
 	});
 </script>
 
+<!-- 
+  HTML (DISEÑO) 
+  He reemplazado los <...Icon> por SVGs en línea
+  y el <video>/<canvas> por el <div id="qr-reader">
+-->
 <div
 	class="flex min-h-screen flex-col bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white"
 >
@@ -272,7 +191,6 @@
 		<div class="mx-auto max-w-4xl">
 			<h1
 				class="glow-text mb-2 text-center text-4xl font-black tracking-wider text-[#F5FC3C] md:text-5xl"
-				style="text-shadow: 0 0 20px rgba(245, 252, 60, 0.5);"
 			>
 				GÁRGOLA
 			</h1>
@@ -295,8 +213,27 @@
 				class="mb-6 rounded-2xl border-2 border-yellow-400/30 bg-gray-900/50 p-6 shadow-2xl backdrop-blur-sm"
 			>
 				<h2 class="mb-6 flex items-center justify-center gap-2 text-2xl font-bold text-[#F5FC3C]">
-					<ScanIcon />
-					Validador de Entradas
+					<!-- Icono SVG en línea -->
+					<svg
+						class="h-6 w-6"
+						xmlns="http://www.w3.org/2000/svg"
+						viewBox="0 0 24 24"
+						fill="none"
+						stroke="currentColor"
+						stroke-width="2"
+						stroke-linecap="round"
+						stroke-linejoin="round"
+						><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path
+							d="M21 17v2a2 2 0 0 1-2 2h-2"
+						></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><rect
+							x="7"
+							y="7"
+							width="10"
+							height="10"
+							rx="1"
+						></rect><line x1="7" y1="12" x2="17" y2="12"></line></svg
+					>
+					          Validador de Entradas
 				</h2>
 
 				<!-- Estado inicial: Sin cámara activa -->
@@ -305,28 +242,58 @@
 						<div
 							class="mx-auto mb-6 flex h-40 w-40 items-center justify-center rounded-2xl border-2 border-dashed border-[#F5FC3C]/50 bg-yellow-400/5 transition-all hover:bg-yellow-400/10"
 						>
-							<CameraIcon class="h-20 w-20 text-[#F5FC3C]" />
+							<!-- Icono SVG en línea -->
+							<svg
+								class="h-20 w-20 text-[#F5FC3C]"
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><path
+									d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"
+								></path><circle cx="12" cy="13" r="3"></circle></svg
+							>
 						</div>
 
 						{#if cameraPermissionDenied}
 							<div class="mb-4 rounded-lg border border-red-500/30 bg-red-500/10 p-4">
 								<p class="text-sm text-red-400">
-									⚠️ No tienes permisos para usar la cámara. Por favor, actívalos en la
-									configuración del navegador.
+									⚠️ No tienes permisos para usar la cámara. Por favor, actívalos en la            
+									      configuración del navegador.
 								</p>
 							</div>
 						{/if}
-
 						<button
-							on:click={startCamera}
+							on:click={startScanner}
 							class="transform rounded-xl bg-[#F5FC3C] px-8 py-4 font-bold text-black shadow-lg transition-all hover:scale-105 hover:bg-yellow-300 active:scale-95"
 						>
 							<span class="flex items-center justify-center gap-2">
-								<ScanIcon class="h-5 w-5" />
-								Iniciar Escaneo QR
+								<!-- Icono SVG en línea -->
+								<svg
+									class="h-5 w-5"
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+									stroke-linecap="round"
+									stroke-linejoin="round"
+									><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"
+									></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path
+										d="M7 21H5a2 2 0 0 1-2-2v-2"
+									></path><rect x="7" y="7" width="10" height="10" rx="1"></rect><line
+										x1="7"
+										y1="12"
+										x2="17"
+										y2="12"
+									></line></svg
+								>
+								                Iniciar Escaneo QR
 							</span>
 						</button>
-
 						<p class="mt-4 text-sm text-gray-400">Apunta la cámara al código QR de la entrada</p>
 					</div>
 				{/if}
@@ -334,16 +301,14 @@
 				<!-- Cámara activa escaneando -->
 				{#if scanning}
 					<div class="relative overflow-hidden rounded-xl bg-black">
-						<video
-							bind:this={videoElement}
-							autoplay
-							playsinline
-							muted
-							class="max-h-[600px] min-h-[300px] w-full object-cover"
-						></video>
-						<canvas bind:this={canvasElement} style="display: none;"></canvas>
+						<!-- 
+              --- ESTE ES EL CAMBIO PRINCIPAL ---
+              La librería 'html5-qrcode' inyectará el video aquí dentro.
+              ¡Esto mostrará la cámara en la pantalla!
+            -->
+						<div id="qr-reader" class="min-h-[300px] w-full"></div>
 
-						<!-- Overlay de escaneo -->
+						<!-- Overlay de escaneo (Tu diseño original, ¡se ve genial!) -->
 						<div class="pointer-events-none absolute inset-0 rounded-xl">
 							<!-- Esquinas del marco de escaneo -->
 							<div
@@ -366,7 +331,7 @@
 									class="absolute right-0 bottom-0 h-12 w-12 rounded-br-lg border-r-4 border-b-4 border-[#F5FC3C]"
 								></div>
 
-								<!-- Línea de escaneo animada -->
+								<!-- Línea de escaneo animada (definida en <style>) -->
 								<div class="animate-scan absolute inset-x-0 top-0 h-1 bg-[#F5FC3C] shadow-lg"></div>
 							</div>
 						</div>
@@ -378,13 +343,11 @@
 							>
 								<p class="flex items-center gap-2 text-sm font-medium text-[#F5FC3C]">
 									<span class="inline-block h-2 w-2 animate-pulse rounded-full bg-[#F5FC3C]"></span>
-									Buscando código QR...
+									                  Buscando código QR...
 								</p>
 							</div>
-						</div>
-
-						<button
-							on:click={stopCamera}
+						</div><button
+							on:click={stopScanner}
 							class="absolute bottom-4 left-1/2 -translate-x-1/2 transform rounded-xl bg-red-500 px-8 py-3 font-bold text-white shadow-lg transition-all hover:bg-red-600 active:scale-95"
 						>
 							Cancelar
@@ -396,7 +359,34 @@
 				{#if loading}
 					<div class="py-12 text-center">
 						<div class="mx-auto mb-4 h-16 w-16 animate-spin">
-							<Loader2Icon class="h-full w-full text-[#F5FC3C]" />
+							<!-- Icono SVG en línea (animado con <style>) -->
+							<svg
+								class="h-full w-full text-[#F5FC3C]"
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"
+								></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line
+									x1="16.24"
+									y1="16.24"
+									x2="19.07"
+									y2="19.07"
+								></line><line x1="2" y1="12" x2="6" y2="12"></line><line
+									x1="18"
+									y1="12"
+									x2="22"
+									y2="12"
+								></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line
+									x1="16.24"
+									y1="7.76"
+									x2="19.07"
+									y2="4.93"
+								></line></svg
+							>
 						</div>
 						<p class="text-lg font-medium text-gray-300">Validando entrada...</p>
 						<p class="mt-2 text-sm text-gray-500">Por favor espera</p>
@@ -413,15 +403,39 @@
 						<div class="mb-4 flex justify-center">
 							{#if result.status === 'success'}
 								<div class="rounded-full bg-green-500/20 p-4">
-									<CheckCircleIcon class="h-16 w-16 text-green-400" />
+									<!-- Icono SVG en línea -->
+									<svg
+										class="h-16 w-16 text-green-400"
+										xmlns="http://www.w3.org/2000/svg"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline
+											points="22 4 12 14.01 9 11.01"
+										></polyline></svg
+									>
 								</div>
 							{:else}
 								<div class="rounded-full bg-red-500/20 p-4">
-									<AlertCircleIcon class="h-16 w-16 text-red-400" />
+									<!-- Icono SVG en línea -->
+									<svg
+										class="h-16 w-16 text-red-400"
+										xmlns="http://www.w3.org/2000/svg"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"
+										></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg
+									>
 								</div>
 							{/if}
 						</div>
-
 						<h3
 							class="mb-3 text-2xl font-bold {result.status === 'success'
 								? 'text-green-400'
@@ -455,6 +469,7 @@
 											>{formatDate(result.ticket_data.scanned_at)}</span
 										>
 									</p>
+									section:
 								{/if}
 							</div>
 						{/if}
@@ -464,12 +479,11 @@
 								Código: {result.error_code}
 							</div>
 						{/if}
-
 						<button
 							on:click={resetResult}
 							class="mt-6 transform rounded-xl bg-[#F5FC3C] px-8 py-3 font-bold text-black shadow-lg transition-all hover:scale-105 hover:bg-yellow-300 active:scale-95"
 						>
-							Escanear Otra Entrada
+							Escanear Otra Entrada           _
 						</button>
 					</div>
 				{/if}
@@ -486,7 +500,7 @@
 							d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
 						/>
 					</svg>
-					Instrucciones
+					          Instrucciones
 				</h3>
 				<ul class="space-y-2 text-sm text-gray-400">
 					<li class="flex items-start gap-2">
@@ -498,7 +512,7 @@
 						<span>Apunta la cámara al código QR de la entrada</span>
 					</li>
 					<li class="flex items-start gap-2">
-						<span class="mt-0.5 text-[#F5FC3C]">•</span>
+						click-outside:             <span class="mt-0.5 text-[#F5FC3C]">•</span>
 						<span>El escaneo es automático, no necesitas tomar foto</span>
 					</li>
 					<li class="flex items-start gap-2">
@@ -852,7 +866,11 @@ Código HTTP: 404 Not Found Cuerpo de la respuesta (JSON):
  mejorar la ux/ui, pero la ui no cambies la paleta de colores.
  el enpoint solo simula por el momento esas respuestas -->
 
-<style>
+<!-- 
+  ESTILOS GLOBALES
+  He agregado esto para las animaciones y para asegurar que el video se vea bien.
+-->
+<!-- <style>
 	@keyframes scan {
 		0%,
 		100% {
@@ -865,5 +883,45 @@ Código HTTP: 404 Not Found Cuerpo de la respuesta (JSON):
 
 	.animate-scan {
 		animation: scan 2s ease-in-out infinite;
+	}
+</style> -->
+
+<style>
+	@keyframes spin {
+		from {
+			transform: rotate(0deg);
+		}
+		to {
+			transform: rotate(360deg);
+		}
+	}
+
+	:global(.animate-scan) {
+		animation: scan 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+	}
+	@keyframes scan {
+		0% {
+			transform: translateY(0);
+		}
+		50% {
+			/* 224px (altura del qrbox) - 4px (altura de la línea) */
+			transform: translateY(220px);
+		}
+		100% {
+			transform: translateY(0);
+		}
+	}
+
+	:global(.glow-text) {
+		text-shadow: 0 0 20px rgba(245, 252, 60, 0.5);
+	}
+
+	:global(#qr-reader video) {
+		width: 100%;
+		height: auto;
+		object-fit: cover;
+		min-height: 300px;
+		max-height: 600px; /* Coincide con tu <video> anterior */
+		border-radius: 0.75rem; /* 12px, coincide con el 'rounded-xl' */
 	}
 </style>
