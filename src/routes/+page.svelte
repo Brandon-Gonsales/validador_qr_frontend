@@ -28,11 +28,13 @@
 				body: JSON.stringify({ f1_code: qrData })
 			});
 			window.alert(response.json());
-			ticketData = await response.json();
+			//ticketData = await response.json();
 			const data: TicketResponse = await response.json();
 			return data;
 		} catch (err) {
 			console.error('Error de red o fetch:', err);
+			alert(err);
+			ticketData = err;
 			return {
 				status: 'error',
 				message: 'Error de conexión. No se pudo validar.'
@@ -45,7 +47,7 @@
 	let loading: boolean = $state(false);
 	let cameraPermissionDenied: boolean = $state(false);
 	let lastScannedCode: string = $state(''); // Evitar escaneos duplicados
-	let ticketData: TicketResponse | null = $state(null);
+	let ticketData: any = $state(null);
 	// Variable para la instancia de la librería
 
 	let html5QrCode: Html5Qrcode; // ID del <div> donde se renderizará el video
