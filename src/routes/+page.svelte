@@ -27,6 +27,7 @@
 				},
 				body: JSON.stringify({ f1_code: qrData })
 			});
+			alert(response.json());
 			const data: TicketResponse = await response.json();
 			return data;
 		} catch (err) {
