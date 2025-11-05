@@ -16,69 +16,34 @@
 			user_id?: string;
 			scanned_at?: string;
 		};
-	};
+	}; // URL del endpoint (reemplaza con tu URL real)
 
-	// URL del endpoint (reemplaza con tu URL real)
-	const ENDPOINT_URL = 'https://tu-api.com/validate-ticket';
-
+	// --- CAMBIO 1: URL DEL ENDPOINT ACTUALIZADA ---
+	const ENDPOINT_URL = 'https://validador-qr-bvw0.onrender.com/validate-ticket'; // --- CAMBIO 2: FUNCIÓN 'validateTicket' IMPLEMENTADA ---
 	// Función para validar entrada con el endpoint real
+
 	async function validateTicket(qrData: string): Promise<TicketResponse> {
 		try {
+			// Llamamos al endpoint real con el método POST
 			const response = await fetch(ENDPOINT_URL, {
 				method: 'POST',
 				headers: {
 					'Content-Type': 'application/json'
 				},
-				body: JSON.stringify({ qr_code: qrData })
-			});
+				body: JSON.stringify({ f1_code: qrData }) // Enviamos el JSON como espera tu API
+			}); // Tu API devuelve JSON tanto para éxito (200) como para errores (404, 409)
+			// así que solo necesitamos parsear la respuesta.
 
-			const data = await response.json();
+			const data: TicketResponse = await response.json();
 			return data;
 		} catch (err) {
-			// Simulación mientras no tengas el endpoint real
-			return simulateEndpoint(qrData);
+			// Esto captura errores de red (ej. sin internet, CORS, o si el servidor está caído)
+			console.error('Error de red o fetch:', err);
+			return {
+				status: 'error',
+				message: 'Error de conexión. No se pudo validar.'
+			};
 		}
-	}
-
-	// Simulación del endpoint (QUITAR cuando tengas el endpoint real)
-	function simulateEndpoint(qrData: string): Promise<TicketResponse> {
-		return new Promise((resolve) => {
-			setTimeout(() => {
-				// Simular diferentes respuestas basadas en el código QR
-				const codeNum = qrData.slice(-5);
-
-				if (codeNum.includes('111') || codeNum.includes('222')) {
-					// Entrada válida
-					resolve({
-						status: 'success',
-						message: 'Acceso permitido',
-						ticket_data: {
-							user_name: 'Ana García',
-							user_id: 'General',
-							scanned_at: new Date().toISOString()
-						}
-					});
-				} else if (codeNum.includes('999') || codeNum.includes('888')) {
-					// Ya escaneada
-					resolve({
-						status: 'error',
-						error_code: 'ALREADY_SCANNED',
-						message: 'Esta entrada ya fue registrada.',
-						ticket_data: {
-							user_name: 'Juan Pérez',
-							scanned_at: '2025-11-05T09:15:30Z'
-						}
-					});
-				} else {
-					// No encontrada
-					resolve({
-						status: 'error',
-						error_code: 'NOT_FOUND',
-						message: 'Código QR no válido. La entrada no existe.'
-					});
-				}
-			}, 1500);
-		});
 	}
 
 	// Variables reactivas
