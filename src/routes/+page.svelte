@@ -27,21 +27,30 @@
 				},
 				body: JSON.stringify({ f1_code: qrData })
 			});
-			//window.alert(response.json());
-			console.log('response.json(): ', response.json());
-			//ticketData = await response.json();
-			const data: TicketResponse = await response.json();
-			return data;
+
+			const body = await response.json();
+
+			if (response.status === 404) {
+				return body.detail as TicketResponse;
+			}
+
+			if (response.status === 409) {
+				return body.detail as TicketResponse;
+			}
+
+			// ✅ si es 200
+			return body as TicketResponse;
 		} catch (err) {
 			console.error('Error de red o fetch:', err);
-			alert(err);
-			ticketData = err;
+
 			return {
 				status: 'error',
 				message: 'Error de conexión. No se pudo validar.'
 			};
 		}
-	} // --- VARIABLES REACTIVAS ---
+	}
+
+	// --- VARIABLES REACTIVAS ---
 
 	let scanning: boolean = $state(false);
 	let result: TicketResponse | null = $state(null);
@@ -460,6 +469,9 @@
 						</button>
 					</div>
 				{/if}
+			</div>
+			<div>
+				<button class="bg-red-500 p-4" onclick={() => validateTicket('805507')}>validar qr</button>
 			</div>
 		</div>
 	</div>
