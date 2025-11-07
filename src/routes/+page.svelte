@@ -54,7 +54,7 @@
 	let html5QrCode: Html5Qrcode; // ID del <div> donde se renderizará el video
 	const qrReaderElementId = 'qr-reader'; // --- LÓGICA DEL ESCÁNER (Actualizada) ---
 
-	async function startScanner(qrPrueba: string) {
+	async function startScanner() {
 		scanning = true;
 		result = null;
 		lastScannedCode = ''; // Esperar un tick para que el <div id="qr-reader"> exista en el DOM
@@ -71,12 +71,12 @@
 			qrbox: { width: 224, height: 224 }
 		}; // Callback: Se llama CADA VEZ que detecta un QR
 
-		const qrCodeSuccessCallback = (qrPrueba: string) => {
+		const qrCodeSuccessCallback = (decodedText: string) => {
 			// Solo procesar si es un código nuevo (para evitar doble submit)
-			if (qrPrueba !== lastScannedCode) {
-				lastScannedCode = qrPrueba;
-				console.log('✅ QR detectado:', qrPrueba);
-				handleQRDetected(qrPrueba);
+			if (decodedText !== lastScannedCode) {
+				lastScannedCode = decodedText;
+				window.alert(decodedText);
+				handleQRDetected(decodedText);
 			}
 		}; // Callback para errores (los ignoramos para que siga escaneando)
 
@@ -209,30 +209,6 @@
 			<div
 				class="mb-6 rounded-2xl border-2 border-yellow-400/30 bg-gray-900/50 p-6 shadow-2xl backdrop-blur-sm"
 			>
-				<h2 class="mb-6 flex items-center justify-center gap-2 text-2xl font-bold text-[#F5FC3C]">
-					<!-- Icono SVG en línea -->
-					<svg
-						class="h-6 w-6"
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"></path><path
-							d="M21 17v2a2 2 0 0 1-2 2h-2"
-						></path><path d="M7 21H5a2 2 0 0 1-2-2v-2"></path><rect
-							x="7"
-							y="7"
-							width="10"
-							height="10"
-							rx="1"
-						></rect><line x1="7" y1="12" x2="17" y2="12"></line></svg
-					>
-					          Validador de Entradas
-				</h2>
-
 				<!-- Estado inicial: Sin cámara activa -->
 				{#if !scanning && !result && !loading}
 					<div class="py-8 text-center">
@@ -263,12 +239,11 @@
 								</p>
 							</div>
 						{/if}
-						<!-- <button
-							on:click={startScanner}
+						<button
+							onclick={startScanner}
 							class="transform rounded-xl bg-[#F5FC3C] px-8 py-4 font-bold text-black shadow-lg transition-all hover:scale-105 hover:bg-yellow-300 active:scale-95"
 						>
 							<span class="flex items-center justify-center gap-2">
-							
 								<svg
 									class="h-5 w-5"
 									xmlns="http://www.w3.org/2000/svg"
@@ -288,9 +263,9 @@
 										y2="12"
 									></line></svg
 								>
-								                Iniciar Escaneo QR
+								Iniciar Escaneo QR
 							</span>
-						</button> -->
+						</button>
 						<p class="mt-4 text-sm text-gray-400">Apunta la cámara al código QR de la entrada</p>
 					</div>
 				{/if}
@@ -486,13 +461,6 @@
 					</div>
 				{/if}
 			</div>
-			<div class="rounded-xl border border-yellow-400/20 bg-gray-900/30 p-4">
-				{#if ticketData}
-					<h3>ticketData response</h3>
-					<pre>{JSON.stringify(ticketData, null, 2)}</pre>
-				{/if}
-			</div>
-			<button onclick={() => startScanner('671939')}>Iniciar escaneo</button>
 		</div>
 	</div>
 </div>
