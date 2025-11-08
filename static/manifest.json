@@ -4,8 +4,8 @@
 	"description": "Soy tu gargola.",
 	"start_url": "/",
 	"display": "standalone",
-	"background_color": "#FFFFFF",
-	"theme_color": "#000000",
+	"background_color": "#020409",
+	"theme_color": "#020409",
 	"icons": [
 		{
 			"src": "/images/logo_empty_datahub.png",
@@ -13,7 +13,7 @@
 			"type": "image/png"
 		},
 		{
-			"src": "/images/logo_datahub.png",
+			"src": "/images/logo_empty_datahub.png",
 			"sizes": "512x512",
 			"type": "image/png"
 		},
