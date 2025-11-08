@@ -66,7 +66,7 @@
 		result = null;
 		lastScannedCode = '';
 
-		await new Promise((resolve) => setTimeout(resolve, 100)); // Inicializar la librería en el <div>
+		//await new Promise((resolve) => setTimeout(resolve, 100)); // Inicializar la librería en el <div>
 
 		if (!html5QrCode) {
 			html5QrCode = new Html5Qrcode(qrReaderElementId);
@@ -311,17 +311,6 @@
 							</div>
 						</div>
 
-						<!-- Indicador de escaneo -->
-						<div class="absolute top-4 left-1/2 -translate-x-1/2 transform">
-							<div
-								class="rounded-full border border-[#F5FC3C]/30 bg-black/80 px-4 py-2 backdrop-blur-sm"
-							>
-								<p class="flex items-center gap-2 text-sm font-medium text-[#F5FC3C]">
-									<span class="inline-block h-2 w-2 animate-pulse rounded-full bg-[#F5FC3C]"></span>
-									Buscando código QR...
-								</p>
-							</div>
-						</div>
 						<button
 							onclick={stopScanner}
 							class="absolute bottom-4 left-1/2 -translate-x-1/2 transform rounded-xl bg-red-500 px-8 py-3 font-bold text-white shadow-lg transition-all hover:bg-red-600 active:scale-95"
