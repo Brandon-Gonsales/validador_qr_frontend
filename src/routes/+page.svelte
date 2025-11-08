@@ -160,6 +160,7 @@
 	} // --- FUNCIONES AUXILIARES (Sin cambios) ---
 
 	function resetResult() {
+		dataQR = '';
 		result = null;
 		lastScannedCode = '';
 	}
