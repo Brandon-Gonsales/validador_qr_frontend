@@ -10,8 +10,7 @@
 		{
 			"src": "/images/logo_datahub.png",
 			"sizes": "512x512",
-			"type": "image/png",
-			"purpose": "any"
+			"type": "image/png"
 		},
 		{
 			"src": "/images/logo_empty_datahub.png",
