@@ -66,7 +66,7 @@
 		result = null;
 		lastScannedCode = '';
 
-		//await new Promise((resolve) => setTimeout(resolve, 100)); // Inicializar la librería en el <div>
+		await new Promise((resolve) => setTimeout(resolve, 100)); // Inicializar la librería en el <div>
 
 		if (!html5QrCode) {
 			html5QrCode = new Html5Qrcode(qrReaderElementId);
@@ -108,7 +108,7 @@
 				cameraPermissionDenied = true;
 			}
 			scanning = false;
-			alert(err);
+			//alert(err);
 			alert('No se pudo acceder a la cámara. Revisa los permisos.');
 		}
 	}
