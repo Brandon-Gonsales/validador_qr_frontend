@@ -14,7 +14,7 @@
 			"purpose": "any"
 		},
 		{
-			"src": "/images/logo_empty_datahub.png",
+			"src": "/images/logo_datahub.png",
 			"sizes": "192x192",
 			"type": "image/png",
 			"purpose": "maskable"
