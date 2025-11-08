@@ -27,7 +27,6 @@
 				},
 				body: JSON.stringify({ f1_code: qrData })
 			});
-			//window.alert(response.json());
 			console.log('response.json(): ', response.json());
 			//ticketData = await response.json();
 			const data: TicketResponse = await response.json();
@@ -54,7 +53,7 @@
 	let html5QrCode: Html5Qrcode; // ID del <div> donde se renderizará el video
 	const qrReaderElementId = 'qr-reader'; // --- LÓGICA DEL ESCÁNER (Actualizada) ---
 
-	async function startScanner(qrPrueba: string) {
+	async function startScanner() {
 		scanning = true;
 		result = null;
 		lastScannedCode = ''; // Esperar un tick para que el <div id="qr-reader"> exista en el DOM
@@ -71,12 +70,12 @@
 			qrbox: { width: 224, height: 224 }
 		}; // Callback: Se llama CADA VEZ que detecta un QR
 
-		const qrCodeSuccessCallback = (qrPrueba: string) => {
+		const qrCodeSuccessCallback = (decodedText: string) => {
 			// Solo procesar si es un código nuevo (para evitar doble submit)
-			if (qrPrueba !== lastScannedCode) {
-				lastScannedCode = qrPrueba;
-				console.log('✅ QR detectado:', qrPrueba);
-				handleQRDetected(qrPrueba);
+			if (decodedText !== lastScannedCode) {
+				lastScannedCode = decodedText;
+				console.log('✅ QR detectado:', decodedText);
+				handleQRDetected(decodedText);
 			}
 		}; // Callback para errores (los ignoramos para que siga escaneando)
 
@@ -263,12 +262,12 @@
 								</p>
 							</div>
 						{/if}
-						<!-- <button
-							on:click={startScanner}
+						<button
+							onclick={startScanner}
 							class="transform rounded-xl bg-[#F5FC3C] px-8 py-4 font-bold text-black shadow-lg transition-all hover:scale-105 hover:bg-yellow-300 active:scale-95"
 						>
 							<span class="flex items-center justify-center gap-2">
-							
+								<!-- Icono SVG en línea -->
 								<svg
 									class="h-5 w-5"
 									xmlns="http://www.w3.org/2000/svg"
@@ -290,7 +289,7 @@
 								>
 								                Iniciar Escaneo QR
 							</span>
-						</button> -->
+						</button>
 						<p class="mt-4 text-sm text-gray-400">Apunta la cámara al código QR de la entrada</p>
 					</div>
 				{/if}
@@ -492,7 +491,7 @@
 					<pre>{JSON.stringify(ticketData, null, 2)}</pre>
 				{/if}
 			</div>
-			<button onclick={() => startScanner('671939')}>Iniciar escaneo</button>
+			<button onclick={() => validateTicket('671939')}>Iniciar escaneo</button>
 		</div>
 	</div>
 </div>
