@@ -1,7 +1,10 @@
 <script lang="ts">
-	// --- LIBRERÍAS ---
-	import { onMount, onDestroy } from 'svelte'; // Importamos la nueva librería. Debes instalarla: npm install html5-qrcode
-	import { Html5Qrcode } from 'html5-qrcode'; // --- TIPOS DE DATOS (Sin cambios) ---
+	import { onMount, onDestroy } from 'svelte';
+	import { Html5Qrcode } from 'html5-qrcode';
+	import CheckCircleIcon from '$lib/icons/outline/checkCircleIcon.svelte';
+	import AlertCircleIcon from '$lib/icons/solid/alertCircleIcon.svelte';
+	import CameraIcon from '$lib/icons/outline/cameraIcon.svelte';
+	import Loader2Icon from '$lib/icons/outline/loader2Icon.svelte';
 
 	type TicketResponse = {
 		status: 'success' | 'error';
@@ -12,13 +15,14 @@
 			user_id?: string;
 			scanned_at?: string;
 		};
-	}; // --- ENDPOINT (Sin cambios) ---
+	};
 
-	const ENDPOINT_URL = 'https://validador-qr-bvw0.onrender.com/validate-ticket'; // --- FUNCIÓN DE API (Sin cambios, está perfecta) ---
+	const ENDPOINT_URL = 'https://validador-qr-bvw0.onrender.com/validate-ticket';
+	let dataQR: string = $state('');
 
 	async function validateTicket(qrData: string): Promise<TicketResponse> {
-		console.log('Validando entrada con código:', qrData);
-
+		//console.log('Validando entrada con código:', qrData);
+		dataQR = qrData;
 		try {
 			const response = await fetch(ENDPOINT_URL, {
 				method: 'POST',
@@ -57,6 +61,12 @@
 	let lastScannedCode: string = $state(''); // Evitar escaneos duplicados
 	let ticketData: any = $state(null);
 	// Variable para la instancia de la librería
+	// result = {
+	// 	status: 'error',
+	// 	message: 'Ticket válido',
+	// 	error_code: 'ALREADY_SCANNED',
+	// 	ticket_data: { user_name: 'Juan', user_id: '123', scanned_at: '2023-01-01T00:00:00' }
+	// };
 
 	let html5QrCode: Html5Qrcode; // ID del <div> donde se renderizará el video
 	const qrReaderElementId = 'qr-reader'; // --- LÓGICA DEL ESCÁNER (Actualizada) ---
@@ -65,7 +75,7 @@
 		scanning = true;
 		result = null;
 		lastScannedCode = '';
-
+		dataQR = '';
 		await new Promise((resolve) => setTimeout(resolve, 100)); // Inicializar la librería en el <div>
 
 		if (!html5QrCode) {
@@ -82,7 +92,6 @@
 			// Solo procesar si es un código nuevo (para evitar doble submit)
 			if (decodedText !== lastScannedCode) {
 				lastScannedCode = decodedText;
-				window.alert(decodedText);
 				handleQRDetected(decodedText);
 			}
 		}; // Callback para errores (los ignoramos para que siga escaneando)
@@ -115,6 +124,7 @@
 
 	async function stopScanner() {
 		scanning = false;
+		resetResult();
 		try {
 			// Detener la cámara solo si está iniciada
 			if (html5QrCode && html5QrCode.isScanning) {
@@ -219,19 +229,7 @@
 							class="mx-auto mb-6 flex h-40 w-40 items-center justify-center rounded-2xl border-2 border-dashed border-[#F5FC3C]/50 bg-yellow-400/5 transition-all hover:bg-yellow-400/10"
 						>
 							<!-- Icono SVG en línea -->
-							<svg
-								class="h-20 w-20 text-[#F5FC3C]"
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><path
-									d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"
-								></path><circle cx="12" cy="13" r="3"></circle></svg
-							>
+							<CameraIcon class="h-20 w-20 text-[#F5FC3C]" />
 						</div>
 
 						{#if cameraPermissionDenied}
@@ -247,66 +245,33 @@
 							class="transform rounded-xl bg-[#F5FC3C] px-8 py-4 font-bold text-black shadow-lg transition-all hover:scale-105 hover:bg-yellow-300 active:scale-95"
 						>
 							<span class="flex items-center justify-center gap-2">
-								<svg
-									class="h-5 w-5"
-									xmlns="http://www.w3.org/2000/svg"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									><path d="M3 7V5a2 2 0 0 1 2-2h2"></path><path d="M17 3h2a2 2 0 0 1 2 2v2"
-									></path><path d="M21 17v2a2 2 0 0 1-2 2h-2"></path><path
-										d="M7 21H5a2 2 0 0 1-2-2v-2"
-									></path><rect x="7" y="7" width="10" height="10" rx="1"></rect><line
-										x1="7"
-										y1="12"
-										x2="17"
-										y2="12"
-									></line></svg
-								>
+								<CameraIcon class="h-5 w-5" />
 								Iniciar Escaneo QR
 							</span>
 						</button>
-						<p class="mt-4 text-sm text-gray-400">Apunta la cámara al código QR de la entrada</p>
 					</div>
 				{/if}
 
 				<!-- Cámara activa escaneando -->
 				{#if scanning}
 					<div class="relative overflow-hidden rounded-xl bg-black">
-						<!-- 
-              --- ESTE ES EL CAMBIO PRINCIPAL ---
-              La librería 'html5-qrcode' inyectará el video aquí dentro.
-              ¡Esto mostrará la cámara en la pantalla!
-            -->
 						<div id="qr-reader" class="min-h-[300px] w-full"></div>
-
-						<!-- Overlay de escaneo (Tu diseño original, ¡se ve genial!) -->
 						<div class="pointer-events-none absolute inset-0 rounded-xl">
-							<!-- Esquinas del marco de escaneo -->
 							<div
 								class="absolute top-1/2 left-1/2 h-56 w-56 -translate-x-1/2 -translate-y-1/2 transform"
 							>
-								<!-- Esquina superior izquierda -->
 								<div
 									class="absolute top-0 left-0 h-12 w-12 rounded-tl-lg border-t-4 border-l-4 border-[#F5FC3C]"
 								></div>
-								<!-- Esquina superior derecha -->
 								<div
 									class="absolute top-0 right-0 h-12 w-12 rounded-tr-lg border-t-4 border-r-4 border-[#F5FC3C]"
 								></div>
-								<!-- Esquina inferior izquierda -->
 								<div
 									class="absolute bottom-0 left-0 h-12 w-12 rounded-bl-lg border-b-4 border-l-4 border-[#F5FC3C]"
 								></div>
-								<!-- Esquina inferior derecha -->
 								<div
 									class="absolute right-0 bottom-0 h-12 w-12 rounded-br-lg border-r-4 border-b-4 border-[#F5FC3C]"
 								></div>
-
-								<!-- Línea de escaneo animada (definida en <style>) -->
 								<div class="animate-scan absolute inset-x-0 top-0 h-1 bg-[#F5FC3C] shadow-lg"></div>
 							</div>
 						</div>
@@ -325,33 +290,7 @@
 					<div class="py-12 text-center">
 						<div class="mx-auto mb-4 h-16 w-16 animate-spin">
 							<!-- Icono SVG en línea (animado con <style>) -->
-							<svg
-								class="h-full w-full text-[#F5FC3C]"
-								xmlns="http://www.w3.org/2000/svg"
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								stroke-width="2"
-								stroke-linecap="round"
-								stroke-linejoin="round"
-								><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"
-								></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line
-									x1="16.24"
-									y1="16.24"
-									x2="19.07"
-									y2="19.07"
-								></line><line x1="2" y1="12" x2="6" y2="12"></line><line
-									x1="18"
-									y1="12"
-									x2="22"
-									y2="12"
-								></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line
-									x1="16.24"
-									y1="7.76"
-									x2="19.07"
-									y2="4.93"
-								></line></svg
-							>
+							<Loader2Icon class="h-full w-full text-[#F5FC3C]" />
 						</div>
 						<p class="text-lg font-medium text-gray-300">Validando entrada...</p>
 						<p class="mt-2 text-sm text-gray-500">Por favor espera</p>
@@ -361,43 +300,20 @@
 				<!-- Resultado -->
 				{#if result}
 					<div
-						class="rounded-xl border-2 p-8 text-center transition-all {result.status === 'success'
+						class="rounded-xl border-2 p-2 text-center transition-all {result.status === 'success'
 							? 'border-green-500 bg-green-500/10'
 							: 'border-red-500 bg-red-500/10'}"
 					>
 						<div class="mb-4 flex justify-center">
 							{#if result.status === 'success'}
-								<div class="rounded-full bg-green-500/20 p-4">
+								<div class="rounded-full bg-green-500/20 p-2">
 									<!-- Icono SVG en línea -->
-									<svg
-										class="h-16 w-16 text-green-400"
-										xmlns="http://www.w3.org/2000/svg"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline
-											points="22 4 12 14.01 9 11.01"
-										></polyline></svg
-									>
+									<CheckCircleIcon class="h-10 w-10 text-green-400" />
 								</div>
 							{:else}
-								<div class="rounded-full bg-red-500/20 p-4">
+								<div class="rounded-full bg-red-500/20 p-2">
 									<!-- Icono SVG en línea -->
-									<svg
-										class="h-16 w-16 text-red-400"
-										xmlns="http://www.w3.org/2000/svg"
-										viewBox="0 0 24 24"
-										fill="none"
-										stroke="currentColor"
-										stroke-width="2"
-										stroke-linecap="round"
-										stroke-linejoin="round"
-										><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"
-										></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg
-									>
+									<AlertCircleIcon class="h-10 w-10 text-red-400" />
 								</div>
 							{/if}
 						</div>
@@ -426,7 +342,7 @@
 								{/if}
 
 								{#if result.ticket_data.scanned_at}
-									<p class="text-gray-300">
+									<p class="text-center text-gray-300">
 										<span class="text-gray-500">
 											{result.status === 'success' ? 'Registrado:' : 'Primer escaneo:'}
 										</span>
@@ -434,7 +350,6 @@
 											>{formatDate(result.ticket_data.scanned_at)}</span
 										>
 									</p>
-									section:
 								{/if}
 							</div>
 						{/if}
@@ -453,9 +368,11 @@
 					</div>
 				{/if}
 			</div>
-			<!-- <div>
-				<button class="bg-red-500 p-4" onclick={() => validateTicket('805507')}>validar qr</button>
-			</div> -->
+			<div class="text-center">
+				{#if dataQR}
+					<span class="text-2xl font-bold text-white">Datos QR: {dataQR}</span>
+				{/if}
+			</div>
 		</div>
 	</div>
 </div>
