@@ -60,13 +60,6 @@
 	let cameraPermissionDenied: boolean = $state(false);
 	let lastScannedCode: string = $state(''); // Evitar escaneos duplicados
 	let ticketData: any = $state(null);
-	// Variable para la instancia de la librería
-	// result = {
-	// 	status: 'error',
-	// 	message: 'Ticket válido',
-	// 	error_code: 'ALREADY_SCANNED',
-	// 	ticket_data: { user_name: 'Juan', user_id: '123', scanned_at: '2023-01-01T00:00:00' }
-	// };
 
 	let html5QrCode: Html5Qrcode; // ID del <div> donde se renderizará el video
 	const qrReaderElementId = 'qr-reader'; // --- LÓGICA DEL ESCÁNER (Actualizada) ---
