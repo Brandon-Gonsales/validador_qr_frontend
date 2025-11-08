@@ -60,11 +60,15 @@
 	let cameraPermissionDenied: boolean = $state(false);
 	let lastScannedCode: string = $state(''); // Evitar escaneos duplicados
 	let ticketData: any = $state(null);
+	let isStopping: boolean = false;
 
 	let html5QrCode: Html5Qrcode; // ID del <div> donde se renderizará el video
 	const qrReaderElementId = 'qr-reader'; // --- LÓGICA DEL ESCÁNER (Actualizada) ---
 
 	async function startScanner() {
+		if (isStopping) {
+			await new Promise((resolve) => setTimeout(resolve, 300));
+		}
 		scanning = true;
 		result = null;
 		lastScannedCode = '';
@@ -116,16 +120,21 @@
 	}
 
 	async function stopScanner() {
+		if (isStopping) {
+			return;
+		}
+		isStopping = true;
 		scanning = false;
 		resetResult();
 		try {
 			// Detener la cámara solo si está iniciada
 			if (html5QrCode && html5QrCode.isScanning) {
 				await html5QrCode.stop();
-				console.log('✅ Escáner detenido');
 			}
 		} catch (err) {
 			console.error('❌ Error al detener el escáner:', err);
+		} finally {
+			isStopping = false;
 		}
 		lastScannedCode = '';
 	}
